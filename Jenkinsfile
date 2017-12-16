@@ -318,6 +318,20 @@ pipeline {
           }
         }
 
+
+        stage('ROS tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros:v1.0'
+              args '-e CI=true -e CCACHE_BASEDIR=$WORKSPACE -e CCACHE_DIR=/tmp/ccache -v /tmp/ccache:/tmp/ccache:rw -v $WORKSPACE:/job:rw'
+            }
+          }
+          steps {
+            sh 'bash "/job/Firmware/integrationtests/run_tests.bash" /job/Firmware'
+          }
+        }
+
+
         stage('tests') {
           agent {
             docker {
