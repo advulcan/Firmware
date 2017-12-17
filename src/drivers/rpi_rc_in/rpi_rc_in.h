@@ -55,6 +55,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
+#include "rpi_rc_js_in.h"
 
 #define RCINPUT_MEASURE_INTERVAL_US 20000
 
@@ -87,6 +88,7 @@ private:
 
 	int rpi_rc_init();
 
+	XboxJoyStick _xbox_js;
 	bool _should_exit = false;
 	bool _is_running = false;
 	struct work_s _work = {};

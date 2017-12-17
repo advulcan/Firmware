@@ -50,16 +50,19 @@ int RcInput::rpi_rc_init()
 {
 	int i;
 
-	//--------------初始化共享内存映射----------------------------//
-	if ((_shmid = shmget(_key, sizeof(int) * _channels, 0666)) < 0) {
-		PX4_WARN("Faild to access shared memory");
-		return -1;
-	}
+	////--------------初始化共享内存映射----------------------------//
+	//if ((_shmid = shmget(_key, sizeof(int) * _channels, 0666)) < 0) {
+	//	PX4_WARN("Faild to access shared memory");
+	//	return -1;
+	//}
 
-	if ((_mem = (int *) shmat(_shmid, NULL, 0)) == (void *) - 1) {
-		PX4_WARN("Faild to map shared memory");
-		return -1;
-	}
+	//if ((_mem = (int *) shmat(_shmid, NULL, 0)) == (void *) - 1) {
+	//	PX4_WARN("Faild to map shared memory");
+	//	return -1;
+	//}
+
+	//use xbox js staick insteadof rc
+	_xbox_js.startJoyStickListener();
 
 	//--------------发布所有通道的数据------------------------//
 	for (i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
@@ -115,13 +118,17 @@ void RcInput::_measure(void)
 	uint64_t ts;
 	// PWM数据发布
 	// read pwm value from shared memory
-	int i = 0;
+	//int i = 0;
 
-	for (i = 0; i < _channels; ++i) {
-		int value = _mem[i]; // access the shared memory (with a single read)
-		_data.values[i] = (value <= 0) ? UINT16_MAX : value;
+	//for (i = 0; i < _channels; ++i) {
+	//	int value = _mem[i]; // access the shared memory (with a single read)
+	//	_data.values[i] = (value <= 0) ? UINT16_MAX : value;
+	//}
+	int * datas = _xbox_js.read();
+	for (int j = 0; j < _channels; j++) {
+		_data.values[j] = datas[j];
+
 	}
-
 	ts = hrt_absolute_time();
 	_data.timestamp = ts;
 	_data.timestamp_last_signal = ts;

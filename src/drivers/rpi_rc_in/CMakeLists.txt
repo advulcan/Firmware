@@ -37,6 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		rpi_rc_in.cpp
+		rpi_rc_js_in.cpp 
 	DEPENDS
 		platforms__common
 	)
