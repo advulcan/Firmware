@@ -106,7 +106,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_local_pos_pub(nullptr),
 	_attitude_pub(nullptr),
 	_gps_pub(nullptr),
-	_sensors_pub(nullptr),
 	_gyro_pub(nullptr),
 	_accel_pub(nullptr),
 	_mag_pub(nullptr),
@@ -120,7 +119,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_distance_sensor_pub(nullptr),
 	_offboard_control_mode_pub(nullptr),
 	_actuator_controls_pub(nullptr),
-	_global_vel_sp_pub(nullptr),
 	_att_sp_pub(nullptr),
 	_rates_sp_pub(nullptr),
 	_pos_sp_triplet_pub(nullptr),
@@ -279,13 +277,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_HEARTBEAT:
 		handle_message_heartbeat(msg);
-		break;
-
-	case MAVLINK_MSG_ID_REQUEST_DATA_STREAM:
-		if (_mavlink->accepting_commands()) {
-			handle_message_request_data_stream(msg);
-		}
-
 		break;
 
 	case MAVLINK_MSG_ID_SYSTEM_TIME:
@@ -1677,12 +1668,6 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 	    (mavlink_system.compid == ping.target_component)) {
 		mavlink_msg_ping_send_struct(_mavlink->get_channel(), &ping);
 	}
-}
-
-void
-MavlinkReceiver::handle_message_request_data_stream(mavlink_message_t *msg)
-{
-	// REQUEST_DATA_STREAM is deprecated, please use SET_MESSAGE_INTERVAL instead
 }
 
 int
