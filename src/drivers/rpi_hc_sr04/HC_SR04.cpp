@@ -33,6 +33,111 @@
 
 #include "HC_SR04.h"
 
+namespace hc_sr04_c {
+	double _distince;
+	int waiting_fall = 0;
+	struct timeval tv_start, tv_end;
+	struct timespec ts_start, ts_end;
+	double sum;
+	double varianceSum;
+	int count;
+	long calc_interval_us(struct timeval tv_start, struct timeval tv_end);
+	long calc_interval_ns(struct timespec start, struct timespec end);
+	void reset();
+	void onChange(void);
+	void * run(void *args);
+	void start();
+
+	long calc_interval_us(struct timeval start, struct timeval end) {
+		return ((end.tv_sec - start.tv_sec) * 1000 * 1000 + (end.tv_usec - start.tv_usec));
+	}
+	long calc_interval_ns(struct timespec start, struct timespec end) {
+		struct timespec diff;
+		diff.tv_sec = (end.tv_sec - start.tv_sec);
+		diff.tv_nsec = (end.tv_nsec - start.tv_nsec);
+		if (diff.tv_nsec < 0) {
+			diff.tv_sec--;
+			diff.tv_nsec += 1000000000;
+		}
+		long nsec = diff.tv_nsec + diff.tv_sec * 100000000;
+		//printf("TimeMeasure: used time %9.1lf[ns]\n", nsec);
+		return nsec;
+	}
+	void reset() {
+		//printf("reset");
+		tv_start.tv_sec = 0;
+		tv_start.tv_usec = 0;
+		tv_end.tv_sec = 0;
+		tv_end.tv_usec = 0;
+		ts_start.tv_sec = 0;
+		ts_start.tv_nsec = 0;
+		ts_end.tv_sec = 0;
+		ts_end.tv_nsec = 0;
+	}
+	void onChange(void) {
+		int current = digitalRead(PIN_ECHO);
+		if (current == HIGH) {
+			//printf("echo HIGH\n");
+			//gettimeofday(&tv_start, NULL);
+			clock_gettime(CLOCK_REALTIME, &ts_start);
+			waiting_fall = 1;
+		}
+		else if (current == LOW) {
+			//printf("echo LOW\n");
+			if (waiting_fall == 1) {
+				//gettimeofday(&tv_end, NULL);
+				//long usecond = calc_interval_us(tv_start, tv_end);
+				//double distance = 340.0 * usecond / 1000.0; //mm
+				clock_gettime(CLOCK_REALTIME, &ts_end);
+				long usecond = calc_interval_ns(ts_start, ts_end);
+				double distance = 340.0 * usecond / 2 / 1000000.0; //mm
+				sum += distance;
+				count++;
+				double avg = sum / count;
+				double variance = (distance - avg) * (distance - avg);
+				varianceSum += variance;
+				double varAvg = varianceSum / count;
+				//printf("elps :%ld\n", usecond);
+				printf("dis: %f, elps:%ld, avg: %f, var: %f\n", distance, usecond, avg, varAvg);
+				waiting_fall = 0;
+				_distince = distance;
+				reset();
+			}
+			else {
+				printf("invalid LOW\n");
+			}
+		}
+	}
+	void * run(void *args) {
+		while (1) {
+			//((HC_SR04*)args)->collect();
+			//usleep(1 * 1000);//1ms - 1000hz 
+			pinMode(PIN_TRIG, OUTPUT);
+			//printf("trigger.\n");
+			digitalWrite(PIN_TRIG, HIGH);
+			usleep(15);
+			digitalWrite(PIN_TRIG, LOW);
+			usleep(100000);
+		}
+		return (void *)0;
+	}
+	void start()
+	{
+		wiringPiSetup();
+		pinMode(PIN_ECHO, INPUT);
+		wiringPiISR(PIN_ECHO, INT_EDGE_BOTH, onChange);
+		pthread_t tidp;
+		int error;
+		PX4_INFO("thread rangfinder start");
+		error = ::pthread_create(&tidp, NULL, run, NULL);
+		if (error)
+		{
+			printf("phread is not created...\n");
+			return;
+		}
+		printf("end");
+	}
+}
 HC_SR04::HC_SR04(unsigned sonars) :
 	//CDev("HC_SR04", SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
@@ -104,50 +209,36 @@ HC_SR04::init()
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
 	
-	/*init GPIO*/
-	wiringPiSetup();
-	pinMode(PIN_ECHO, INPUT);
-	int i = wiringPiISR(PIN_ECHO, INT_EDGE_BOTH, onChange);
-	
-	/*start new thread to run sr04*/
-	pthread_t tidp;
-	int error;
-	PX4_INFO("thread rangfinder start");
-	error = ::pthread_create(&tidp, NULL, sub_run, this);
-	if (error)
-	{
-		printf("phread is not created...\n");
-		return -1;
-	}
+	hc_sr04_c::start();
 	start();
 	return ret;
 }
 
-void onChange(void) {
-	int current = digitalRead(PIN_ECHO);
-	if (current == HIGH) {
-		_rise_time = hrt_absolute_time();
-		_waiting_fall = 1;
-	}
-	else if (current == LOW) {
-		if (waiting_fall == 1) {
-			_fall_time = hrt_absolute_time();
-			uint64_t usecond = _fall_time - _rise_time;
-			double distance = 340.0 * usecond / 2 / 1000000.0; //mm
-			//sum += distance;
-			//count++;
-			//double avg = sum / count;
-			//double variance = (distance - avg) * (distance - avg);
-			//varianceSum += variance;
-			//double varAvg = varianceSum / count;
-			////printf("elps :%ld\n", usecond);
-			printf("dis: %f, elps:%ld, avg: %f", distance, usecond);
-			waiting_fall = 0;
-		}
-		else {
-			PX4_INFO("invalid LOW");
-		}
-	}
+void HC_SR04::onChange() {
+	//int current = digitalRead(PIN_ECHO);
+	//if (current == HIGH) {
+	//	_rise_time = hrt_absolute_time();
+	//	_waiting_fall = 1;
+	//}
+	//else if (current == LOW) {
+	//	if (waiting_fall == 1) {
+	//		_fall_time = hrt_absolute_time();
+	//		uint64_t usecond = _fall_time - _rise_time;
+	//		double distance = 340.0 * usecond / 2 / 1000000.0; //mm
+	//		//sum += distance;
+	//		//count++;
+	//		//double avg = sum / count;
+	//		//double variance = (distance - avg) * (distance - avg);
+	//		//varianceSum += variance;
+	//		//double varAvg = varianceSum / count;
+	//		////printf("elps :%ld\n", usecond);
+	//		printf("dis: %f, elps:%ld, avg: %f", distance, usecond);
+	//		waiting_fall = 0;
+	//	}
+	//	else {
+	//		PX4_INFO("invalid LOW");
+	//	}
+	//}
 }
 
 void
@@ -170,7 +261,7 @@ void *
 HC_SR04::sub_run(void *args) {
 	while (1) {
 		((HC_SR04*)args)->collect();
-		usleep(1 * 1000);//1000hz 
+		usleep(1 * 1000);//1ms - 1000hz 
 
 	}
 	return (void *)0;
@@ -238,9 +329,6 @@ HC_SR04::measure()
 {
 	return 0;
 }
-
-
-
 
 void
 HC_SR04::start()

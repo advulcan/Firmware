@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <linux/input.h>
 #include <linux/joystick.h>
+#include <px4_defines.h>
 
 #define XBOX_TYPE_BUTTON    0x01
 #define XBOX_TYPE_AXIS      0x02
@@ -84,15 +85,17 @@ private:
 	int throttleValue;
 	int x_down;
 	int y_down;
+
 	int xbox_open(char* file_name);
 	void xbox_close();
-	void directMap();
 	void filterZero(int *);
 	int narrow(int cur, int a);
 	int reverse(int cur);
 	int mapToRCValue(int jsValue);
 	//void arrowThrottle();
+	void directMap();
 	void thresholdThrottle();
+	void mapToChannels();
 	int xbox_map_read();
 	static void *sub_run(void *args);
 public:
@@ -102,11 +105,8 @@ public:
 		char js_device_path[20] = "/dev/input/js0";
 		this->xbox_fd_ = xbox_open(js_device_path);
 		if (this->xbox_fd_ < 0){
-			perror("Error  openning joystick");
+			PX4_ERR("Error  openning joystick");
 		}
-		else { 
-			perror("Xbox joystick on");
-		} 
 		map_.lt = -32767;
 		map_.rt = -32767;
 		throttleFlag = 0;

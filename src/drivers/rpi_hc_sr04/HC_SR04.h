@@ -160,6 +160,7 @@ private:
 	int					measure();
 	void				collect();
 	static void *		sub_run(void *args);
+	static void			onChange();
 	static void			cycle_trampoline(void *arg);
 };
 #endif

@@ -24,8 +24,12 @@ void XboxJoyStick::filterZero(int* cur)
 }
 int XboxJoyStick::narrow(int cur, int a)
 {
-	if (cur < -10000 || cur > 10000) {
-		return cur / a;
+	int deadZone = 10000;
+	if (cur + deadZone < 0) {
+		return (cur + deadZone) * XBOX_VAL_MAX / (XBOX_VAL_MAX - deadZone) / a;
+	}
+	else if (cur - deadZone > 0) {
+		return (cur - deadZone) * XBOX_VAL_MAX / (XBOX_VAL_MAX - deadZone) / a;
 	}
 	else {
 		return 0;
@@ -93,6 +97,11 @@ void XboxJoyStick::thresholdThrottle()
 	channel_data[5] = mapToRCValue(map_.rt);
 	channel_data[6] = mapToRCValue(map_.xx);
 	channel_data[7] = mapToRCValue(reverse(map_.yy));
+}
+void XboxJoyStick::mapToChannels()
+{
+	//directMap();
+	thresholdThrottle();
 }
 int XboxJoyStick::xbox_map_read(){
 	int len, type, number, value;
@@ -209,9 +218,7 @@ int XboxJoyStick::xbox_map_read(){
 	fflush(stdout); 
 	printf("\e8");*/
 
-	//directMap();
-	//arrowThrottle();
-	thresholdThrottle();
+	mapToChannels();
 
 	printf("\e7");
 	printf("\e[H\e[2K");
@@ -237,13 +244,15 @@ int * XboxJoyStick::read() {
 int XboxJoyStick::startJoyStickListener() {
 	pthread_t tidp;
 	int error;
-	printf("I am start \n");
+	//printf("I am start \n");
+	PX4_INFO("starting joystick");
 	error = ::pthread_create(&tidp, NULL, sub_run, this);
 	if (error)
 	{
-		printf("phread is not created...\n");
+		PX4_ERR("phread is not created...\n");
 		return -1;
 	}
+	PX4_INFO("started  joystick");
 	return 0;
 }
 void *XboxJoyStick::sub_run(void *args){

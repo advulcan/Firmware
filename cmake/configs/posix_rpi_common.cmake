@@ -87,7 +87,7 @@ set(config_module_list
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
 	drivers/rpi_js_in
-
+	drivers/rpi_hc_sr04
 	#
 	# Libraries
 	#
