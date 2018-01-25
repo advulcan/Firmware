@@ -86,7 +86,7 @@ set(config_module_list
 	drivers/linux_pwm_out
 	drivers/navio_rgbled
 	drivers/pwm_out_sim
-	drivers/rpi_rc_in
+	drivers/rpi_js_in
 
 	#
 	# Libraries
