@@ -1,0 +1,1 @@
+./build/posix_rpi_native/px4 ./posix-configs/rpi/px4_rpi.config
