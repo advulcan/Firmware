@@ -87,7 +87,7 @@
 #define SR04_MIN_DISTANCE 	(0.10f)
 #define SR04_MAX_DISTANCE 	(4.00f)
 
-#define SR04_CONVERSION_INTERVAL 	100000 /* 100ms for one sonar */
+#define SR04_CONVERSION_INTERVAL	100000 /* 100ms for one sonar */
 #define PIN_TRIG 4
 #define PIN_ECHO 5
 
@@ -101,13 +101,8 @@ public:
 	HC_SR04(unsigned sonars = 1);
 	virtual ~HC_SR04();
 	virtual int 		init();
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
 	void				print_info();
-	void                interrupt(unsigned time);
 
-protected:
-	virtual int			probe();
 
 private:
 	int					_waiting_fall;
@@ -119,34 +114,10 @@ private:
 	float				_current_distance;
 	struct				work_s _work;
 	ringbuffer::RingBuffer	*_reports;
-	bool				_sensor_ok;
-	int					_measure_ticks;
-	bool				_collect_phase;
 	int					_class_instance;
 	int					_orb_class_instance;
-
+	int					_cycling_rate;
 	orb_advert_t		_distance_sensor_topic;
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-
-	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
-	int					_cycling_rate;	/* */
-	uint8_t				_index_counter;	/* temporary sonar i2c address */
-
-	std::vector<float>
-	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
-	struct GPIOConfig {
-		uint32_t        trig_port;
-		uint32_t        echo_port;
-		uint32_t        alt;
-	};
-	static const GPIOConfig _gpio_tab[];
-	unsigned 		_raising_time;
-	unsigned 		_falling_time;
-	unsigned 		_status;
-	int					probe_address(uint8_t address);
 
 	void				start();
 	void				stop();
@@ -157,10 +128,6 @@ private:
 	float				get_maximum_distance();
 
 	void				cycle();
-	int					measure();
-	void				collect();
-	static void *		sub_run(void *args);
-	static void			onChange();
 	static void			cycle_trampoline(void *arg);
 };
 #endif
